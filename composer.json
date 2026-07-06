@@ -1,7 +1,6 @@
 {
   "name": "besnovatyj/yii2-cms-kernel",
   "description": "Тонкое ядро (SDK) модулей Yii2 CMS: базовый класс модуля (CmsModule), базовая миграция (BaseMigration), url-хелпер. Зависит только от yii2 и контрактов.",
-  "version": "1.0.0",
   "type": "library",
   "license": "MIT",
   "authors": [
