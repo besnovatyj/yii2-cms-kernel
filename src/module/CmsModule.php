@@ -38,6 +38,14 @@ abstract class CmsModule extends Module
      *  - app-console  → `<ns>\commands`;
      *  - app-backend (и прочее) → дефолт `<ns>\controllers`; поэтому URL включает сегмент `/backend/`.
      *
+     * Симметрично namespace смещается и `viewPath`, т.к. модули разделяют вьюхи на
+     * `views/backend` и `views/frontend`:
+     *  - на бэкенде сегмент `backend` остаётся в маршруте → попадает в `controllerId`, и Yii сам
+     *    ищет вьюху в `views/backend/...` — доп. настройка не нужна;
+     *  - на фронте сегмент `frontend` из маршрута убран (спрятан в namespace), поэтому его нужно
+     *    вернуть в `viewPath` вручную → `views/frontend/...`. Иначе Yii искал бы `views/{controller}`
+     *    и не находил вьюху.
+     *
      * Если устанавливаем controllerNamespace -> ссылки вида `/{moduleName}/{controllerName}/{actionName}`
      * Если дефолтный controllerNamespace     -> ссылки вида `/{moduleName}/rest/{controllerName}/{actionName}`
      * (Доступные на данный момент приложения: 'id' => 'app-frontend', 'id' => 'app-backend', 'id' => 'app-console', 'id' => 'app-rest')
@@ -51,6 +59,7 @@ abstract class CmsModule extends Module
 
         if (Yii::$app->id === 'app-frontend') {
             $this->controllerNamespace .= '\\frontend';
+            $this->setViewPath($this->getViewPath() . '/frontend');
             $this->layout = 'main';
         } elseif (Yii::$app->id === 'app-console') {
             // Консольные контроллёры лежат в `<ns>\commands`, а не под `\controllers`.
