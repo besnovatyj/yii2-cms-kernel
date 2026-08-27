@@ -24,19 +24,48 @@ trait ControllerTrait
     public function goReferer(array|string $fallback = ['index']): Response
     {
         $referer = Yii::$app->getRequest()->getReferrer();
+        $localPath = $referer !== null ? $this->extractLocalPath($referer) : null;
 
-        if ($referer !== null && $this->isLocalReferer($referer)) {
-            return $this->redirect($referer);
-        }
-
-        return $this->redirect($fallback);
+        return $this->redirect($localPath ?? $fallback);
     }
 
-    private function isLocalReferer(string $url): bool
+    /**
+     * Возвращает из абсолютного URL относительный путь (`/path?query`), если URL указывает
+     * на хост текущего приложения, иначе `null`.
+     *
+     * Эталонный хост берётся из `\yii\web\UrlManager::$hostInfo` — то есть из конфигурации
+     * приложения, а не из заголовков запроса: `\yii\web\Request::getHostName()` вычисляется
+     * из `Host`/`X-Forwarded-Host`, которые присылает клиент. Если `hostInfo` в конфигурации
+     * UrlManager не задан, Yii деградирует к данным запроса — тогда проверка не строже
+     * прежней, но и не слабее.
+     *
+     * Схема НЕ сверяется намеренно: за TLS-терминирующим прокси приложение может видеть
+     * соединение как `http`, тогда как браузер присылает Referer с `https`. Сверяется только
+     * имя хоста — без схемы и порта.
+     *
+     * Редирект отдаётся относительным путём, а не исходным URL: это исключает open redirect,
+     * в том числе через protocol-relative путь вида `//evil.com`.
+     */
+    private function extractLocalPath(string $url): ?string
     {
-        $host = Yii::$app->getRequest()->getHostInfo(); // Например, https://my-domain.com
-        // Завершающий слэш в префиксе отсекает подделки вида https://my-domain.com.evil.com/
-        return $host !== null && (str_starts_with($url, $host . '/') || $url === $host);
+        $parts = parse_url($url);
+        if ($parts === false) {
+            return null;
+        }
+
+        $host = $parts['host'] ?? null;
+        $trustedHost = parse_url((string)Yii::$app->getUrlManager()->getHostInfo(), PHP_URL_HOST);
+        if ($host === null || !is_string($trustedHost) || strcasecmp($host, $trustedHost) !== 0) {
+            return null;
+        }
+
+        $path = $parts['path'] ?? '/';
+        // Одиночный ведущий слэш обязателен: `//evil.com` браузер трактует как чужой хост
+        if (!str_starts_with($path, '/') || str_starts_with($path, '//')) {
+            return null;
+        }
+
+        return $path . (isset($parts['query']) ? '?' . $parts['query'] : '');
     }
 
 
