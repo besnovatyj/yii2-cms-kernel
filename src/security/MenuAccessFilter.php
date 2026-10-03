@@ -27,7 +27,7 @@ use yii\web\User;
 final class MenuAccessFilter
 {
     /**
-     * @param array          $items пункты меню (формат ProvidesAdminMenu: label/url/items/...)
+     * @param array          $items пункты меню в формате NavWidget (label/url/items/...)
      * @param User|null      $user  проверяемый пользователь; null — текущий `Yii::$app->user`
      * @return array отфильтрованные пункты
      */
